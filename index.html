@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueueLess – Smart Government Office Platform</title>
+  <meta name="description" content="Digital Queue Management & Smart Government Office Platform. Book services, track live queues, pre-check documents, and skip waiting lines.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            govblue: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-900 transition-colors duration-200">
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- ⚡ HACKATHON JUDGE DEMO BAR -->
+  <div class="judge-demo-bar">
+    <div class="flex items-center gap-3">
+      <span class="px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded border border-amber-500/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+        <i class="fa-solid fa-trophy"></i> Judge Demo Mode
+      </span>
+      <span class="text-xs text-slate-300 hidden md:inline">
+        Live Hackathon Simulator: <span id="demo-status-text" class="font-semibold text-emerald-400">Ready</span>
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap text-xs">
+      <button id="btn-start-demo" onclick="app.startLiveDemo()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-extrabold transition flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-play"></i> START HACKATHON DEMO
+      </button>
+
+      <button id="btn-advance-queue" onclick="app.advanceQueueSim()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-md font-semibold transition flex items-center gap-1.5">
+        <i class="fa-solid fa-forward-step"></i> Advance Queue (+1)
+      </button>
+
+      <div class="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded border border-slate-700">
+        <span class="text-slate-400 text-[11px]">Speed:</span>
+        <button onclick="app.setDemoSpeed(1)" class="px-1.5 py-0.5 rounded text-[11px] font-bold demo-speed-btn bg-blue-600 text-white" data-speed="1">1x</button>
+        <button onclick="app.setDemoSpeed(2)" class="px-1.5 py-0.5 rounded text-[11px] font-semibold demo-speed-btn text-slate-300 hover:text-white" data-speed="2">2x</button>
+        <button onclick="app.setDemoSpeed(5)" class="px-1.5 py-0.5 rounded text-[11px] font-semibold demo-speed-btn text-slate-300 hover:text-white" data-speed="5">5x</button>
+      </div>
+
+      <button onclick="app.resetDemoData()" class="px-2.5 py-1.5 text-slate-400 hover:text-slate-200 text-xs flex items-center gap-1" title="Reset Demo Data">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN HEADER / NAVIGATION -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="app.switchRole('landing')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 text-white flex items-center justify-center font-extrabold text-xl shadow-md shadow-blue-500/20 relative">
+          Q
+          <span class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold tracking-tight text-slate-900">Queue<span class="text-blue-600">Less</span></span>
+            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full border border-blue-200 uppercase">Smart Gov</span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-medium hidden sm:block" data-i18n="tagline">Government Services, Without the Queue.</p>
+        </div>
+      </div>
+
+      <!-- Role Selector Navigation -->
+      <nav class="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <button onclick="app.switchRole('landing')" class="role-nav-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 transition" data-role="landing" data-i18n="navHome">
+          <i class="fa-solid fa-house mr-1.5"></i> Home
+        </button>
+        <button onclick="app.switchRole('citizen')" class="role-nav-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 transition" data-role="citizen" data-i18n="navCitizen">
+          <i class="fa-solid fa-user-circle mr-1.5"></i> Citizen Portal
+        </button>
+        <button onclick="app.switchRole('staff')" class="role-nav-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 transition" data-role="staff" data-i18n="navStaff">
+          <i class="fa-solid fa-id-card mr-1.5"></i> Staff Counter
+        </button>
+        <button onclick="app.switchRole('admin')" class="role-nav-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 transition" data-role="admin" data-i18n="navAdmin">
+          <i class="fa-solid fa-chart-line mr-1.5"></i> Admin Analytics
+        </button>
+      </nav>
+
+      <!-- Accessibility Toolbar & Actions -->
+      <div class="flex items-center gap-3">
+        <!-- Language Switcher -->
+        <div class="relative">
+          <select id="lang-selector" onchange="app.changeLanguage(this.value)" class="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <option value="en">English</option>
+            <option value="hi">हिंदी (Hindi)</option>
+            <option value="gu">ગુજરાતી (Gujarati)</option>
+          </select>
+        </div>
+
+        <!-- High Contrast Mode Toggle -->
+        <button onclick="app.toggleHighContrast()" class="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition" title="Toggle High Contrast Accessibility">
+          <i class="fa-solid fa-circle-half-stroke text-base"></i>
+        </button>
+
+        <!-- Large Text Toggle -->
+        <button onclick="app.toggleLargeText()" class="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition font-extrabold text-sm" title="Toggle Large Text Mode">
+          A+
+        </button>
+
+        <!-- Notification Bell -->
+        <button onclick="app.openNotificationsModal()" class="relative p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition" title="Notifications">
+          <i class="fa-solid fa-bell text-base"></i>
+          <span id="notif-badge" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white font-bold text-[10px] rounded-full flex items-center justify-center">3</span>
+        </button>
+
+        <!-- Primary Action Button -->
+        <button onclick="app.openBookingModal()" class="hidden sm:inline-flex btn-primary text-xs" data-i18n="bookBtn">
+          <i class="fa-solid fa-ticket"></i> Book Service
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- APP CONTENT CONTAINER -->
+  <main class="flex-grow">
+    
+    <!-- ================================================================= -->
+    <!-- SECTION 1: LANDING PAGE -->
+    <!-- ================================================================= -->
+    <section id="view-landing" class="view-section">
+      
+      <!-- HERO SECTION -->
+      <div class="relative overflow-hidden bg-gradient-to-b from-blue-50/80 via-white to-slate-50 pt-12 pb-20 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <!-- Hero Left Text -->
+            <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+              <div class="hero-badge">
+                <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                <span>Next-Gen Smart Citizen Experience</span>
+              </div>
+
+              <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight" data-i18n="heroTitle">
+                Skip the Queue.<br/>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600">
+                  Get Government Services Smarter.
+                </span>
+              </h1>
+
+              <p class="text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 font-normal" data-i18n="heroSubtitle">
+                Book your government service online, verify your documents with AI assistance, track your live queue position from home, and visit the office only when your turn is near.
+              </p>
+
+              <!-- Hero Buttons -->
+              <div class="flex flex-wrap gap-4 justify-center lg:justify-start pt-2">
+                <button onclick="app.openBookingModal()" class="btn-primary text-base px-6 py-3.5 shadow-lg shadow-blue-500/25" data-i18n="bookBtn">
+                  <i class="fa-solid fa-calendar-check text-lg"></i> Book a Service
+                </button>
+                <button onclick="app.switchRole('citizen'); app.scrollToSection('active-token-widget')" class="btn-secondary text-base px-6 py-3.5" data-i18n="trackBtn">
+                  <i class="fa-solid fa-tower-broadcast text-blue-600 text-lg"></i> Track My Token
+                </button>
+              </div>
+
+              <!-- Quick Stats Bar -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 border-t border-slate-200/80">
+                <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <div class="text-2xl font-extrabold text-blue-700">10,000+</div>
+                  <div class="text-xs font-semibold text-slate-500">Citizens Served</div>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <div class="text-2xl font-extrabold text-emerald-600">35%</div>
+                  <div class="text-xs font-semibold text-slate-500">Less Waiting Time</div>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <div class="text-2xl font-extrabold text-indigo-600">60%</div>
+                  <div class="text-xs font-semibold text-slate-500">Less Crowding</div>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <div class="text-2xl font-extrabold text-amber-600">24/7</div>
+                  <div class="text-xs font-semibold text-slate-500">Digital Booking</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Hero Right Animated Dashboard Mockup -->
+            <div class="lg:col-span-5">
+              <div class="relative mx-auto max-w-md lg:max-w-none">
+                <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl blur opacity-30"></div>
+                
+                <div class="relative bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-6">
+                  <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                      <span class="pulse-dot"></span>
+                      <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Live Queue Feed • Counter 03</span>
+                    </div>
+                    <span class="px-2 py-1 bg-emerald-50 text-emerald-700 font-bold text-[11px] rounded-md border border-emerald-200">
+                      Active
+                    </span>
+                  </div>
+
+                  <!-- Token Pass Mockup Card -->
+                  <div class="token-card">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-blue-200" data-i18n="activeToken">Active Token</span>
+                        <div id="hero-user-token-id" class="token-number my-1">A-104</div>
+                        <div id="hero-user-service-name" class="text-xs font-medium text-blue-100">Driving License Renewal</div>
+                      </div>
+                      <div class="text-right">
+                        <span id="hero-user-counter-name" class="px-2.5 py-1 bg-white/20 text-white rounded-full text-xs font-bold backdrop-blur-sm">
+                          Counter 03
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-white/20 grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span class="text-blue-200 block text-[11px]" data-i18n="peopleAhead">People Ahead</span>
+                        <span id="hero-people-ahead" class="text-xl font-bold text-white">7</span>
+                      </div>
+                      <div>
+                        <span class="text-blue-200 block text-[11px]" data-i18n="estWait">Estimated Wait</span>
+                        <span id="hero-est-wait" class="text-xl font-bold text-white">24 min</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Live Queue Progression Stepper Preview -->
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-semibold text-slate-600">
+                      <span><span data-i18n="servingNow">Currently Serving</span>: <strong id="hero-serving-token" class="text-blue-600">A-097</strong></span>
+                      <span class="text-emerald-600"><i class="fa-solid fa-bolt mr-1"></i>Moving Fast</span>
+                    </div>
+                    
+                    <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div id="hero-progress-bar" class="bg-gradient-to-r from-blue-600 to-emerald-500 h-full rounded-full transition-all duration-500" style="width: 45%;"></div>
+                    </div>
+
+                    <div class="flex justify-between text-[11px] text-slate-400">
+                      <span>Serving: A-097</span>
+                      <span>A-100</span>
+                      <span id="hero-user-label" class="font-bold text-blue-600">A-104 (You)</span>
+                    </div>
+                  </div>
+
+                  <button onclick="app.switchRole('citizen')" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2">
+                    Open Citizen Live Dashboard <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW SECTION: PROBLEM vs SOLUTION FOR HACKATHON JUDGES -->
+      <div class="py-16 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center max-w-3xl mx-auto mb-12">
+            <span class="px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full uppercase tracking-wider border border-red-200">
+              The Hackathon Impact
+            </span>
+            <h2 class="text-3xl font-extrabold text-slate-900 mt-3">Transforming Public Service Delivery</h2>
+            <p class="text-slate-600 text-sm mt-2">Replacing painful physical queues with a transparent, intelligent digital ecosystem.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Problem Card -->
+            <div class="p-8 bg-red-50/50 rounded-3xl border border-red-200 space-y-6">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-red-500 text-white flex items-center justify-center font-bold text-xl shadow">
+                  <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <div>
+                  <h3 class="text-xl font-extrabold text-red-950">THE PROBLEM</h3>
+                  <p class="text-xs text-red-800">Traditional Government Office Experience</p>
+                </div>
+              </div>
+
+              <div class="space-y-3 text-xs text-slate-700">
+                <div class="p-3 bg-white rounded-xl border border-red-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-xmark text-red-500 mt-0.5"></i>
+                  <span><strong>Long Physical Queues:</strong> Hours of standing in crowded hallways.</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-red-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-xmark text-red-500 mt-0.5"></i>
+                  <span><strong>Uncertain Wait Times:</strong> Zero visibility on when turn will arrive.</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-red-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-xmark text-red-500 mt-0.5"></i>
+                  <span><strong>Repeated Office Visits:</strong> Rejection due to missing documents on arrival.</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-red-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-xmark text-red-500 mt-0.5"></i>
+                  <span><strong>Manual Paper Tokens:</strong> Chaos at counters & unfair line jumping.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Solution Card -->
+            <div class="p-8 bg-emerald-50/50 rounded-3xl border border-emerald-200 space-y-6">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                  <h3 class="text-xl font-extrabold text-emerald-950">THE QUEUELESS SOLUTION</h3>
+                  <p class="text-xs text-emerald-800">Smart Government Office Platform</p>
+                </div>
+              </div>
+
+              <div class="space-y-3 text-xs text-slate-700">
+                <div class="p-3 bg-white rounded-xl border border-emerald-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-check text-emerald-600 mt-0.5 font-bold"></i>
+                  <span><strong>Digital Booking & Virtual Tokens:</strong> Instant mobile token issuance.</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-emerald-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-check text-emerald-600 mt-0.5 font-bold"></i>
+                  <span><strong>Live Queue Tracking:</strong> Monitor turn live from home or work.</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-emerald-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-check text-emerald-600 mt-0.5 font-bold"></i>
+                  <span><strong>AI Document Pre-Check:</strong> 100% document readiness before visiting.</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-emerald-100 flex items-start gap-2.5">
+                  <i class="fa-solid fa-check text-emerald-600 mt-0.5 font-bold"></i>
+                  <span><strong>Smart Counter Allocation:</strong> Automated load balancing for staff.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: WHY QUEUELESS (EXPLICIT 6 CARDS AS REQUESTED) -->
+      <div class="py-16 bg-slate-50 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center max-w-3xl mx-auto mb-12">
+            <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Core Platform Capabilities</span>
+            <h2 class="text-3xl font-extrabold text-slate-900 mt-1">Why QueueLess?</h2>
+            <p class="text-slate-600 text-sm mt-2">6 Key Innovations Powering Next-Gen Smart Offices.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Card 1 -->
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 hover:shadow-md transition">
+              <div class="w-12 h-12 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-bold text-xl">
+                <i class="fa-solid fa-ticket"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">1. Digital Token</h3>
+              <p class="text-xs text-slate-500">Instant digital queue token generation with assigned counter and time slot.</p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 hover:shadow-md transition">
+              <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-bold text-xl">
+                <i class="fa-solid fa-tower-cell"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">2. Live Queue Tracking</h3>
+              <p class="text-xs text-slate-500">Real-time queue progression telemetry with instant push and SMS turn notifications.</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 hover:shadow-md transition">
+              <div class="w-12 h-12 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center font-bold text-xl">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">3. AI Wait-Time Prediction</h3>
+              <p class="text-xs text-slate-500">Predictive algorithm calculates exact wait time and recommends lower-crowd visit hours.</p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 hover:shadow-md transition">
+              <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center font-bold text-xl">
+                <i class="fa-solid fa-sliders"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">4. Smart Counter Allocation</h3>
+              <p class="text-xs text-slate-500">Automated queue congestion detection and dynamic staff counter re-assignment.</p>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 hover:shadow-md transition">
+              <div class="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center font-bold text-xl">
+                <i class="fa-solid fa-file-circle-check"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">5. Document Pre-Check</h3>
+              <p class="text-xs text-slate-500">AI completeness analyzer pre-verifies required documents before citizens visit.</p>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 hover:shadow-md transition">
+              <div class="w-12 h-12 bg-teal-100 text-teal-700 rounded-xl flex items-center justify-center font-bold text-xl">
+                <i class="fa-solid fa-universal-access"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-base">6. Accessible Services</h3>
+              <p class="text-xs text-slate-500">Multilingual support (English, Hindi, Gujarati), high contrast, and fair priority queues.</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: POPULAR GOVERNMENT SERVICES -->
+      <div class="py-16 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex flex-col md:flex-row md:items-end justify-between mb-10">
+            <div>
+              <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Quick Digital Booking</span>
+              <h2 class="text-3xl font-extrabold text-slate-900 mt-1">Popular Government Services</h2>
+            </div>
+            <button onclick="app.openBookingModal()" class="mt-4 md:mt-0 text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+              Explore All Services <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div onclick="app.quickBookService('RTO', 'Driving License Renewal')" class="p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 hover:shadow-md transition cursor-pointer group">
+              <div class="w-12 h-12 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:scale-110 transition">
+                <i class="fa-solid fa-id-card"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition">Driving License Renewal</h3>
+              <p class="text-xs text-slate-500 mt-1">Regional Transport Office (RTO)</p>
+              <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span><i class="fa-solid fa-clock text-amber-500 mr-1"></i> Avg: 15 mins</span>
+                <span class="text-blue-600 font-bold group-hover:underline">Book Now &rarr;</span>
+              </div>
+            </div>
+
+            <div onclick="app.quickBookService('Revenue Office', 'Income Certificate')" class="p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 hover:shadow-md transition cursor-pointer group">
+              <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:scale-110 transition">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition">Income Certificate</h3>
+              <p class="text-xs text-slate-500 mt-1">Revenue Department & Collectorate</p>
+              <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span><i class="fa-solid fa-clock text-amber-500 mr-1"></i> Avg: 12 mins</span>
+                <span class="text-blue-600 font-bold group-hover:underline">Book Now &rarr;</span>
+              </div>
+            </div>
+
+            <div onclick="app.quickBookService('Municipal Corporation', 'Birth Certificate')" class="p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 hover:shadow-md transition cursor-pointer group">
+              <div class="w-12 h-12 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:scale-110 transition">
+                <i class="fa-solid fa-baby"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition">Birth Certificate</h3>
+              <p class="text-xs text-slate-500 mt-1">Municipal Corporation</p>
+              <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span><i class="fa-solid fa-clock text-amber-500 mr-1"></i> Avg: 10 mins</span>
+                <span class="text-blue-600 font-bold group-hover:underline">Book Now &rarr;</span>
+              </div>
+            </div>
+
+            <div onclick="app.quickBookService('Citizen Service Center', 'Aadhaar Services')" class="p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 hover:shadow-md transition cursor-pointer group">
+              <div class="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:scale-110 transition">
+                <i class="fa-solid fa-fingerprint"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition">Aadhaar Services</h3>
+              <p class="text-xs text-slate-500 mt-1">Citizen Service Center (CSC)</p>
+              <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-medium">
+                <span><i class="fa-solid fa-clock text-amber-500 mr-1"></i> Avg: 18 mins</span>
+                <span class="text-blue-600 font-bold group-hover:underline">Book Now &rarr;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINAL LANDING CTA -->
+      <div class="py-16 bg-gradient-to-r from-blue-700 to-indigo-800 text-white text-center">
+        <div class="max-w-4xl mx-auto px-4 space-y-6">
+          <h2 class="text-3xl sm:text-4xl font-extrabold">Stop Waiting in Lines.<br/>Start Using QueueLess.</h2>
+          <p class="text-blue-100 text-base max-w-xl mx-auto">Get your digital token now and transform your next government office visit.</p>
+          <div class="flex flex-wrap gap-4 justify-center">
+            <button onclick="app.openBookingModal()" class="px-8 py-3.5 bg-white text-blue-800 rounded-xl font-extrabold hover:bg-blue-50 transition shadow-lg">
+              Book a Service Now
+            </button>
+            <button onclick="app.switchRole('citizen')" class="px-8 py-3.5 bg-blue-900/50 hover:bg-blue-900 text-white border border-blue-400/40 rounded-xl font-bold transition">
+              Open Citizen Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div class="flex items-center gap-2 text-white font-extrabold text-lg mb-3">
+              <span class="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-xs">Q</span> QueueLess
+            </div>
+            <p class="text-slate-400">Smart Government Office Platform. National Hackathon Prototype.</p>
+          </div>
+          <div>
+            <h4 class="text-slate-200 font-bold mb-3 uppercase tracking-wider">Quick Links</h4>
+            <ul class="space-y-2">
+              <li><a href="#" onclick="app.switchRole('landing'); return false;" class="hover:text-white">Home</a></li>
+              <li><a href="#" onclick="app.openBookingModal(); return false;" class="hover:text-white">Book Service</a></li>
+              <li><a href="#" onclick="app.switchRole('citizen'); return false;" class="hover:text-white">Live Queue</a></li>
+              <li><a href="#" onclick="app.openDocCheckModal(); return false;" class="hover:text-white">Document Check</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-slate-200 font-bold mb-3 uppercase tracking-wider">Roles</h4>
+            <ul class="space-y-2">
+              <li><a href="#" onclick="app.switchRole('citizen'); return false;" class="hover:text-white">Citizen View</a></li>
+              <li><a href="#" onclick="app.switchRole('staff'); return false;" class="hover:text-white">Staff Counter</a></li>
+              <li><a href="#" onclick="app.switchRole('admin'); return false;" class="hover:text-white">Admin Analytics</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-slate-200 font-bold mb-3 uppercase tracking-wider">Compliance</h4>
+            <p class="text-slate-400">WCAG 2.1 AAA Accessible. Transparent rule-based queues.</p>
+          </div>
+        </div>
+      </footer>
+
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 2: CITIZEN DASHBOARD & LIVE TRACKING -->
+    <!-- ================================================================= -->
+    <section id="view-citizen" class="view-section hidden py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+      
+      <!-- Citizen Header Banner -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-2xl shadow-inner">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-extrabold text-slate-900">Welcome, Citizen</h1>
+              <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full border border-emerald-200">Verified ID</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Track active tokens, book services, and pre-verify documents.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button onclick="app.openBookingModal()" class="btn-primary text-xs" data-i18n="bookBtn">
+            <i class="fa-solid fa-plus"></i> New Service Booking
+          </button>
+          <button onclick="app.openDocCheckModal()" class="btn-secondary text-xs">
+            <i class="fa-solid fa-file-circle-check text-blue-600"></i> AI Doc Check
+          </button>
+        </div>
+      </div>
+
+      <!-- ACTIVE TOKEN & LIVE QUEUE TRACKER (MOST IMPORTANT) -->
+      <div id="active-token-widget" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Active Token Pass Card -->
+        <div class="lg:col-span-5">
+          <div class="token-card h-full flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="px-3 py-1 bg-white/20 text-white rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm" data-i18n="activeToken">
+                  Active Token
+                </span>
+                <span id="active-token-status-badge" class="px-3 py-1 bg-amber-400 text-amber-950 rounded-full text-xs font-extrabold uppercase">
+                  In Queue
+                </span>
+              </div>
+
+              <div class="mt-6">
+                <span class="text-xs text-blue-200 font-medium uppercase tracking-wider block">Token Number</span>
+                <div id="citizen-token-id" class="token-number text-white my-1">A-104</div>
+                <div id="citizen-service-name" class="text-sm font-semibold text-blue-100">Driving License Renewal</div>
+                <div id="citizen-office-name" class="text-xs text-blue-200 mt-0.5">Regional Transport Office (RTO) • Counter 03</div>
+              </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-white/20 space-y-4">
+              <div class="grid grid-cols-3 gap-2 text-center bg-white/10 p-3 rounded-xl backdrop-blur-sm">
+                <div>
+                  <span class="text-[11px] text-blue-200 block" data-i18n="servingNow">Serving Now</span>
+                  <span id="live-serving-token" class="text-lg font-bold text-white">A-097</span>
+                </div>
+                <div>
+                  <span class="text-[11px] text-blue-200 block" data-i18n="peopleAhead">People Ahead</span>
+                  <span id="live-people-ahead" class="text-2xl font-extrabold text-amber-300">7</span>
+                </div>
+                <div>
+                  <span class="text-[11px] text-blue-200 block" data-i18n="estWait">Est. Wait</span>
+                  <span id="live-est-wait" class="text-lg font-bold text-white">24 min</span>
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button onclick="app.downloadTokenPass()" class="flex-1 py-2 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-lg transition text-center flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-download"></i> Pass
+                </button>
+                <button onclick="app.addToCalendar()" class="flex-1 py-2 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-lg transition text-center flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-calendar"></i> Calendar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Live Queue Progression Tracker -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-6">
+          
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+              <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Real-Time Queue Telemetry</span>
+              <h3 class="text-lg font-extrabold text-slate-900">Live Counter Movement</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="pulse-dot"></span>
+              <span class="text-xs font-semibold text-slate-600">Simulated Real-Time</span>
+            </div>
+          </div>
+
+          <!-- Alert Banner based on queue position -->
+          <div id="citizen-turn-alert" class="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+              <i class="fa-solid fa-bell"></i>
+            </div>
+            <div>
+              <h4 id="alert-title" class="font-bold text-slate-900 text-sm">Your turn is approaching</h4>
+              <p id="alert-desc" class="text-xs text-slate-600 mt-0.5">7 citizens are ahead of you. Estimated wait time is approx 24 minutes.</p>
+            </div>
+          </div>
+
+          <!-- Interactive Stepper Progress Visualizer -->
+          <div>
+            <div class="flex justify-between items-center text-xs font-semibold text-slate-600 mb-2">
+              <span>Token Progression</span>
+              <span id="queue-completion-pct" class="text-blue-600 font-bold">45% Complete</span>
+            </div>
+
+            <!-- Progression Nodes -->
+            <div id="queue-timeline-container" class="queue-timeline">
+              <div class="queue-timeline-line"></div>
+              <div id="queue-timeline-progress" class="queue-timeline-progress" style="width: 45%;"></div>
+            </div>
+          </div>
+
+          <!-- Quick Telemetry Information -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100 text-xs">
+            <div>
+              <span class="text-slate-400 block">Office Counter</span>
+              <span id="telemetry-counter" class="font-bold text-slate-800">Counter 03</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Officer On Duty</span>
+              <span class="font-bold text-slate-800">R. Sharma (RTO)</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Avg Time / Citizen</span>
+              <span class="font-bold text-slate-800">3.5 Minutes</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Priority Group</span>
+              <span id="telemetry-priority" class="font-bold text-slate-800">Normal Queue</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- AI SMART QUEUE PREDICTION WIDGET -->
+      <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 sm:p-8 rounded-2xl shadow-lg relative overflow-hidden">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div class="space-y-2 max-w-2xl">
+            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30 uppercase flex items-center gap-1.5 w-fit">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> AI Smart Queue Prediction Engine
+            </span>
+            <h3 class="text-xl font-extrabold text-white">Optimal Visit Timing Analysis</h3>
+            <p class="text-xs text-slate-300">
+              Calculated using live queue length, active counters (5), and historical processing rates.
+              <span class="text-amber-300 font-semibold block mt-0.5">* AI-based estimated prediction</span>
+            </p>
+          </div>
+
+          <div class="bg-white/10 p-4 rounded-xl border border-white/15 backdrop-blur-sm shrink-0 space-y-1 text-center min-w-[200px]">
+            <span class="text-[11px] text-blue-200 block uppercase font-bold tracking-wider">AI Estimated Wait</span>
+            <div id="ai-est-wait-display" class="text-2xl font-extrabold text-amber-300">24 Minutes</div>
+            <span class="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[10px] font-bold">Confidence: 92%</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10 text-xs">
+          <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+            <span class="text-blue-300 font-bold block mb-1">Predicted Peak Window</span>
+            <span class="text-slate-200">11:00 AM – 1:00 PM (Heavy crowding expected)</span>
+          </div>
+          <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+            <span class="text-blue-300 font-bold block mb-1">Office Recommendation</span>
+            <span class="text-emerald-300 font-semibold"><i class="fa-solid fa-thumbs-up mr-1"></i> Visit between 2:00 PM and 3:00 PM for lower crowd</span>
+          </div>
+          <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+            <span class="text-blue-300 font-bold block mb-1">Doc Completeness Score</span>
+            <span id="ai-doc-score-display" class="text-emerald-300 font-semibold"><i class="fa-solid fa-check-circle mr-1"></i> 100% Pre-Verified</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CITIZEN QUICK ACTIONS GRID -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Quick Actions -->
+        <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-slate-900 text-lg">Citizen Quick Actions</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <button onclick="app.openBookingModal()" class="p-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl transition text-left group">
+              <i class="fa-solid fa-calendar-plus text-blue-600 text-xl mb-2 group-hover:scale-110 transition block"></i>
+              <span class="font-bold text-slate-900 text-xs block">Book Service</span>
+              <span class="text-[10px] text-slate-500">Pick date & slot</span>
+            </button>
+
+            <button onclick="app.openDocCheckModal()" class="p-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl transition text-left group">
+              <i class="fa-solid fa-shield-halved text-emerald-600 text-xl mb-2 group-hover:scale-110 transition block"></i>
+              <span class="font-bold text-slate-900 text-xs block">AI Doc Pre-Check</span>
+              <span class="text-[10px] text-slate-500">Verify required files</span>
+            </button>
+
+            <button onclick="app.openHistoryModal()" class="p-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl transition text-left group">
+              <i class="fa-solid fa-clock-rotate-left text-purple-600 text-xl mb-2 group-hover:scale-110 transition block"></i>
+              <span class="font-bold text-slate-900 text-xs block">Service History</span>
+              <span class="text-[10px] text-slate-500">Past tokens & receipts</span>
+            </button>
+
+            <button onclick="app.openFeedbackModal()" class="p-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl transition text-left group">
+              <i class="fa-solid fa-star text-amber-500 text-xl mb-2 group-hover:scale-110 transition block"></i>
+              <span class="font-bold text-slate-900 text-xs block">Rate Experience</span>
+              <span class="text-[10px] text-slate-500">Submit feedback</span>
+            </button>
+
+            <button onclick="app.requestPriorityQueue()" class="p-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl transition text-left group">
+              <i class="fa-solid fa-person-cane text-indigo-600 text-xl mb-2 group-hover:scale-110 transition block"></i>
+              <span class="font-bold text-slate-900 text-xs block">Priority Request</span>
+              <span class="text-[10px] text-slate-500">Senior/PwD/Emergency</span>
+            </button>
+
+            <button onclick="app.openNotificationsModal()" class="p-4 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 rounded-xl transition text-left group">
+              <i class="fa-solid fa-bell text-red-500 text-xl mb-2 group-hover:scale-110 transition block"></i>
+              <span class="font-bold text-slate-900 text-xs block">Alert Center</span>
+              <span class="text-[10px] text-slate-500">SMS & push log</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Today's Appointments Summary -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-slate-900 text-lg">Today's Appointment</h3>
+          
+          <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold text-blue-800">
+              <span id="appointment-date-display">Today, 10:45 AM</span>
+              <span id="appointment-counter-display" class="px-2 py-0.5 bg-blue-200 text-blue-900 rounded text-[10px]">Counter 03</span>
+            </div>
+            <div id="appointment-service-display" class="font-extrabold text-slate-900 text-sm">Driving License Renewal</div>
+            <div id="appointment-office-display" class="flex items-center gap-1.5 text-xs text-slate-600">
+              <i class="fa-solid fa-location-dot text-blue-600"></i> Regional Transport Office (RTO)
+            </div>
+            <div class="pt-2 border-t border-blue-200/60 flex items-center justify-between text-xs">
+              <span class="text-emerald-700 font-bold"><i class="fa-solid fa-check text-xs"></i> Pre-Checked</span>
+              <button onclick="app.openDocCheckModal()" class="text-blue-600 font-bold hover:underline">View Docs</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 3: GOVERNMENT STAFF DASHBOARD -->
+    <!-- ================================================================= -->
+    <section id="view-staff" class="view-section hidden py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+      
+      <!-- Staff Header -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-md">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-2xl shadow-md">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-extrabold">Government Staff Counter Console</h1>
+              <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-xs rounded-full border border-emerald-400/40">Active Duty</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">Manage live token queues, call next citizen, skip/hold, and complete visits.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs">
+          <div class="bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
+            <span class="text-slate-400 block text-[10px]">Active Duty Officer</span>
+            <span class="font-bold text-white">R. Sharma (Counter 03)</span>
+          </div>
+          <button onclick="app.toggleStaffCounterStatus()" id="btn-counter-toggle" class="btn-primary text-xs bg-emerald-600 hover:bg-emerald-500">
+            <i class="fa-solid fa-power-off"></i> Counter Active
+          </button>
+        </div>
+      </div>
+
+      <!-- Staff Key Operational Metrics -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 block">Citizens Served Today</span>
+          <div id="staff-metric-served" class="text-3xl font-extrabold text-blue-700 mt-1">248</div>
+          <span class="text-[11px] text-emerald-600 font-semibold mt-1 block"><i class="fa-solid fa-arrow-up mr-1"></i> +14% vs yesterday</span>
+        </div>
+        <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 block">Waiting Citizens</span>
+          <div id="staff-metric-waiting" class="text-3xl font-extrabold text-amber-600 mt-1">32</div>
+          <span class="text-[11px] text-slate-500 mt-1 block">Across active counters</span>
+        </div>
+        <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 block">Active Counters</span>
+          <div id="staff-metric-counters" class="text-3xl font-extrabold text-indigo-600 mt-1">4 / 5</div>
+          <span class="text-[11px] text-blue-600 font-semibold mt-1 block">Optimal capacity</span>
+        </div>
+        <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 block">Average Wait Time</span>
+          <div id="staff-metric-avgtime" class="text-3xl font-extrabold text-emerald-600 mt-1">3.4 min</div>
+          <span class="text-[11px] text-emerald-600 font-semibold mt-1 block"><i class="fa-solid fa-check mr-1"></i> Target &lt; 5 min</span>
+        </div>
+      </div>
+
+      <!-- SMART COUNTER ALLOCATION & CONGESTION ALERT WIDGET -->
+      <div class="p-5 bg-amber-50 border border-amber-200 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shrink-0 mt-0.5 shadow">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <h4 class="font-extrabold text-amber-950 text-sm">Smart Congestion Alert</h4>
+            <p class="text-xs text-amber-800 mt-0.5">
+              Queue congestion detected on Counter 2 (14 citizens waiting for Certificates).
+              Recommendation: <strong>Open Counter 05 for Certificate Services.</strong>
+            </p>
+          </div>
+        </div>
+        <button onclick="app.openExtraCounter()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow shrink-0">
+          <i class="fa-solid fa-bolt mr-1"></i> Open Counter 05
+        </button>
+      </div>
+
+      <!-- COUNTER QUEUE MANAGEMENT BOARD -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-extrabold text-slate-900">Live Office Counters</h2>
+          <span class="text-xs font-bold text-slate-500">Real-Time Officer Controls</span>
+        </div>
+
+        <div id="staff-counters-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- INTERACTIVE QUEUE TABLE -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-slate-900 text-lg">Active Queue Tokens Management</h3>
+          <span class="text-xs font-bold text-blue-600">Counter 03 Feed</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-100 text-slate-900 uppercase font-bold text-[10px]">
+              <tr>
+                <th class="p-3 rounded-l-lg">Token</th>
+                <th class="p-3">Service</th>
+                <th class="p-3">Counter</th>
+                <th class="p-3">Priority Group</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 rounded-r-lg text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="staff-queue-table-body" class="divide-y divide-slate-100 font-medium">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 4: ADMIN ANALYTICS DASHBOARD -->
+    <!-- ================================================================= -->
+    <section id="view-admin" class="view-section hidden py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+      
+      <!-- Admin Header -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md">
+        <div>
+          <span class="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30 uppercase">National Telemetry</span>
+          <h1 class="text-2xl font-extrabold mt-1">Administrator Analytics & Performance</h1>
+          <p class="text-xs text-slate-300">Footfall analytics, counter utilization, and AI capacity optimization.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <select id="admin-time-filter" onchange="app.changeAdminTimeFilter(this.value)" class="bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-xl border border-white/20 focus:outline-none cursor-pointer">
+            <option value="today" class="text-slate-900">Today (Live)</option>
+            <option value="7days" class="text-slate-900">Last 7 Days</option>
+            <option value="30days" class="text-slate-900">Last 30 Days</option>
+          </select>
+          <button onclick="app.exportAnalyticsReport()" class="btn-primary text-xs bg-blue-600 hover:bg-blue-500">
+            <i class="fa-solid fa-file-export"></i> Export PDF Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Top Metrics Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
+        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] font-semibold text-slate-500 block">Total Served</span>
+          <div id="admin-total-served" class="text-2xl font-extrabold text-blue-700 mt-1">1,420</div>
+          <span class="text-[10px] text-emerald-600 font-bold">Target met</span>
+        </div>
+        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] font-semibold text-slate-500 block">Avg Wait Time</span>
+          <div id="admin-avg-wait" class="text-2xl font-extrabold text-emerald-600 mt-1">14.2 min</div>
+          <span class="text-[10px] text-emerald-600 font-bold">-35% vs baseline</span>
+        </div>
+        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] font-semibold text-slate-500 block">Peak Hours</span>
+          <div class="text-xl font-extrabold text-amber-600 mt-1">11 AM - 1 PM</div>
+          <span class="text-[10px] text-slate-500">Heavy traffic</span>
+        </div>
+        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] font-semibold text-slate-500 block">Counter Utilization</span>
+          <div class="text-2xl font-extrabold text-indigo-600 mt-1">88%</div>
+          <span class="text-[10px] text-indigo-600 font-bold">Optimal load</span>
+        </div>
+        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] font-semibold text-slate-500 block">Queue Abandonment</span>
+          <div class="text-2xl font-extrabold text-emerald-600 mt-1">1.8%</div>
+          <span class="text-[10px] text-emerald-600 font-bold">Very low drop-off</span>
+        </div>
+        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-[11px] font-semibold text-slate-500 block">Satisfaction Rating</span>
+          <div class="text-2xl font-extrabold text-amber-500 mt-1">4.8 / 5.0</div>
+          <span class="text-[10px] text-slate-500">Based on ratings</span>
+        </div>
+      </div>
+
+      <!-- ANALYTICS CHARTS SECTION -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Chart 1: Hourly Footfall & Waiting Time -->
+        <div class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-extrabold text-slate-900 text-lg">Citizens Per Hour & Waiting Trend</h3>
+              <p class="text-xs text-slate-500">Live hourly telemetry across all office counters</p>
+            </div>
+            <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200">
+              Live Feed
+            </span>
+          </div>
+
+          <!-- Custom SVG Chart Container -->
+          <div id="chart-hourly-container" class="w-full h-64 bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-center">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Chart 2: Popular Services Distribution -->
+        <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-slate-900 text-lg">Service Demand Share</h3>
+          <p class="text-xs text-slate-500">Breakdown of tokens requested</p>
+
+          <div id="chart-services-container" class="space-y-3 pt-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COUNTER PERFORMANCE TABLE -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-slate-900 text-lg">Counter Utilization & Performance</h3>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-100 text-slate-900 uppercase font-bold text-[10px]">
+                <tr>
+                  <th class="p-3 rounded-l-lg">Counter</th>
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Served</th>
+                  <th class="p-3">Avg Service Time</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 rounded-r-lg">Efficiency</th>
+                </tr>
+              </thead>
+              <tbody id="admin-counter-table-body" class="divide-y divide-slate-100 font-medium">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 bg-slate-900 text-white p-6 rounded-2xl shadow-sm space-y-4 flex flex-col justify-between">
+          <div>
+            <span class="px-2.5 py-1 bg-blue-500/20 text-blue-300 font-bold text-[11px] rounded-full uppercase">Smart Allocation Engine</span>
+            <h3 class="text-lg font-extrabold mt-2">Automated Load Balancing</h3>
+            <p class="text-xs text-slate-300 mt-1">
+              AI monitors queue lengths and dynamically prompts staff leads to re-assign underutilized counters.
+            </p>
+
+            <div class="mt-4 p-4 bg-white/10 rounded-xl border border-white/10 space-y-2 text-xs">
+              <div class="flex justify-between font-bold">
+                <span>System Recommendation</span>
+                <span class="text-emerald-400">Optimal</span>
+              </div>
+              <p class="text-slate-300 text-[11px]">Re-allocate Counter 4 to handle overflow of Aadhaar Biometrics after 1:30 PM.</p>
+            </div>
+          </div>
+
+          <button onclick="app.triggerSmartLoadBalance()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Apply Auto-Load Balancing
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 1: MULTI-STEP BOOKING WIZARD -->
+  <!-- ================================================================= -->
+  <div id="modal-booking" class="modal-overlay">
+    <div class="modal-container p-6 sm:p-8">
+      
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div>
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Multi-Step Booking</span>
+          <h2 class="text-2xl font-extrabold text-slate-900">Book Government Service</h2>
+        </div>
+        <button onclick="app.closeModal('modal-booking')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition">
+          &times;
+        </button>
+      </div>
+
+      <!-- Step Indicator Bar -->
+      <div class="flex justify-between items-center my-6 relative">
+        <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -z-10 transform -translate-y-1/2"></div>
+        <div class="wizard-step active" data-step="1">
+          <div class="wizard-step-circle">1</div>
+          <span class="text-[10px] font-bold text-slate-600 mt-1 block text-center">Office</span>
+        </div>
+        <div class="wizard-step" data-step="2">
+          <div class="wizard-step-circle">2</div>
+          <span class="text-[10px] font-bold text-slate-600 mt-1 block text-center">Service</span>
+        </div>
+        <div class="wizard-step" data-step="3">
+          <div class="wizard-step-circle">3</div>
+          <span class="text-[10px] font-bold text-slate-600 mt-1 block text-center">Docs</span>
+        </div>
+        <div class="wizard-step" data-step="4">
+          <div class="wizard-step-circle">4</div>
+          <span class="text-[10px] font-bold text-slate-600 mt-1 block text-center">Slot</span>
+        </div>
+        <div class="wizard-step" data-step="5">
+          <div class="wizard-step-circle">5</div>
+          <span class="text-[10px] font-bold text-slate-600 mt-1 block text-center">Token</span>
+        </div>
+      </div>
+
+      <!-- WIZARD STEP CONTENT PANELS -->
+      <div id="booking-wizard-body" class="space-y-6">
+        
+        <!-- STEP 1: SELECT OFFICE -->
+        <div id="wizard-step-1" class="wizard-panel space-y-4">
+          <h3 class="font-bold text-slate-900 text-sm">Step 1: Select Government Office</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            
+            <label class="p-4 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-400 rounded-xl cursor-pointer transition flex items-start gap-3">
+              <input type="radio" name="booking-office" value="RTO" checked class="mt-1 text-blue-600">
+              <div>
+                <span class="font-bold text-slate-900 text-sm block">Regional Transport Office (RTO)</span>
+                <span class="text-xs text-slate-500">Driving license, vehicle RC, fitness certificates</span>
+              </div>
+            </label>
+
+            <label class="p-4 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-400 rounded-xl cursor-pointer transition flex items-start gap-3">
+              <input type="radio" name="booking-office" value="Revenue Office" class="mt-1 text-blue-600">
+              <div>
+                <span class="font-bold text-slate-900 text-sm block">District Collector & Revenue Office</span>
+                <span class="text-xs text-slate-500">Income certificate, caste certificate, domicile</span>
+              </div>
+            </label>
+
+            <label class="p-4 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-400 rounded-xl cursor-pointer transition flex items-start gap-3">
+              <input type="radio" name="booking-office" value="Municipal Corporation" class="mt-1 text-blue-600">
+              <div>
+                <span class="font-bold text-slate-900 text-sm block">Municipal Corporation</span>
+                <span class="text-xs text-slate-500">Birth & death certificates, trade licenses, property tax</span>
+              </div>
+            </label>
+
+            <label class="p-4 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-400 rounded-xl cursor-pointer transition flex items-start gap-3">
+              <input type="radio" name="booking-office" value="Citizen Service Center" class="mt-1 text-blue-600">
+              <div>
+                <span class="font-bold text-slate-900 text-sm block">Citizen Service Center (CSC)</span>
+                <span class="text-xs text-slate-500">Aadhaar card update, PAN card, passport token</span>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- STEP 2: SELECT SERVICE -->
+        <div id="wizard-step-2" class="wizard-panel space-y-4 hidden">
+          <h3 class="font-bold text-slate-900 text-sm">Step 2: Select Service Type</h3>
+          <div id="booking-service-options" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- STEP 3: REQUIRED DOCUMENTS PRE-CHECK -->
+        <div id="wizard-step-3" class="wizard-panel space-y-4 hidden">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Step 3: Document Checklist & Pre-Check</h3>
+              <p class="text-[11px] text-slate-500">* Pre-check system only verifies completeness before appointment.</p>
+            </div>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-extrabold text-xs rounded-full border border-emerald-300">
+              Readiness: <span id="wizard-doc-score">100%</span>
+            </span>
+          </div>
+
+          <div id="wizard-doc-list" class="space-y-3">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- STEP 4: DATE, TIME & PRIORITY -->
+        <div id="wizard-step-4" class="wizard-panel space-y-4 hidden">
+          <h3 class="font-bold text-slate-900 text-sm">Step 4: Pick Date, Time & Priority Category</h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-bold text-slate-700 block mb-1">Select Date</label>
+              <select id="booking-date" class="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <option value="Today">Today (Instant Virtual Queue)</option>
+                <option value="Tomorrow">Tomorrow</option>
+                <option value="Day After">Day After Tomorrow</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs font-bold text-slate-700 block mb-1">Time Slot</label>
+              <select id="booking-time" class="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <option value="10:45 AM">10:45 AM (Available)</option>
+                <option value="11:30 AM">11:30 AM (Available)</option>
+                <option value="02:15 PM">02:15 PM (Recommended - Low Queue)</option>
+                <option value="03:45 PM">03:45 PM (Available)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Citizen Priority Category</label>
+            <select id="booking-priority" class="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <option value="normal">Normal General Queue</option>
+              <option value="senior">Senior Citizen (Age 60+)</option>
+              <option value="pwd">Person with Disability (PwD)</option>
+              <option value="pregnant">Pregnant Woman</option>
+              <option value="emergency">Medical / Critical Emergency</option>
+            </select>
+            <span class="text-[10px] text-slate-500 mt-1 block">
+              * Priority handling follows predefined service rules strictly.
+            </span>
+          </div>
+        </div>
+
+        <!-- STEP 5: TOKEN GENERATION CONFIRMATION -->
+        <div id="wizard-step-5" class="wizard-panel space-y-4 hidden text-center py-4">
+          <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-3xl shadow">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+
+          <h3 class="text-2xl font-extrabold text-slate-900">Digital Token Issued Successfully!</h3>
+          <p class="text-xs text-slate-600 max-w-sm mx-auto">Your token has been registered on the live QueueLess government network.</p>
+
+          <div class="token-card max-w-sm mx-auto text-left my-4">
+            <span class="text-xs text-blue-200 font-bold uppercase">Token Pass</span>
+            <div id="generated-token-id" class="token-number my-1 text-white">A-104</div>
+            <div id="generated-service-name" class="text-xs font-bold text-blue-100">Driving License Renewal</div>
+            
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span class="text-blue-200 block text-[10px]">Counter</span>
+                <span id="generated-counter" class="font-bold text-white">Counter 03</span>
+              </div>
+              <div>
+                <span class="text-blue-200 block text-[10px]">Est. Wait</span>
+                <span id="generated-wait" class="font-bold text-white">24 Minutes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer Wizard Buttons -->
+      <div class="mt-8 pt-4 border-t border-slate-200 flex justify-between items-center">
+        <button id="btn-wizard-prev" onclick="app.prevWizardStep()" class="btn-secondary text-xs disabled:opacity-50">
+          <i class="fa-solid fa-arrow-left"></i> Previous
+        </button>
+
+        <button id="btn-wizard-next" onclick="app.nextWizardStep()" class="btn-primary text-xs">
+          Next Step <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 2: AI DOCUMENT PRE-CHECK MODAL -->
+  <!-- ================================================================= -->
+  <div id="modal-doccheck" class="modal-overlay">
+    <div class="modal-container p-6 sm:p-8">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div>
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">AI Document Pre-Check</span>
+          <h2 class="text-2xl font-extrabold text-slate-900">Application Readiness Analyzer</h2>
+        </div>
+        <button onclick="app.closeModal('modal-doccheck')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition">
+          &times;
+        </button>
+      </div>
+
+      <div class="mt-6 space-y-6">
+        
+        <!-- Readiness Gauge Card -->
+        <div class="p-6 bg-gradient-to-r from-slate-900 to-blue-950 text-white rounded-2xl flex items-center justify-between">
+          <div class="space-y-1">
+            <span class="text-xs font-bold text-blue-300 uppercase">Pre-Verification Score</span>
+            <div id="modal-readiness-text" class="text-3xl font-extrabold text-emerald-400">75% Complete</div>
+            <p id="modal-readiness-sub" class="text-xs text-slate-300">1 document pending upload (Application Form)</p>
+          </div>
+          <div id="modal-readiness-circle" class="w-16 h-16 rounded-full border-4 border-amber-400 text-amber-400 flex items-center justify-center font-extrabold text-lg">
+            75%
+          </div>
+        </div>
+
+        <!-- Document Checklist Interactive -->
+        <div id="doccheck-interactive-list" class="space-y-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 3: NOTIFICATIONS CENTER -->
+  <!-- ================================================================= -->
+  <div id="modal-notifications" class="modal-overlay">
+    <div class="modal-container p-6 sm:p-8 max-w-md">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-bell text-blue-600"></i> Notification Log
+        </h2>
+        <button onclick="app.closeModal('modal-notifications')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition">
+          &times;
+        </button>
+      </div>
+
+      <div id="notifications-list-container" class="mt-4 space-y-3 max-h-96 overflow-y-auto pr-1">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL 4: CITIZEN FEEDBACK & SERVICE HISTORY -->
+  <!-- ================================================================= -->
+  <div id="modal-feedback" class="modal-overlay">
+    <div class="modal-container p-6 sm:p-8 max-w-md text-center">
+      <div class="w-12 h-12 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold text-xl mb-3">
+        <i class="fa-solid fa-star"></i>
+      </div>
+      <h2 class="text-xl font-extrabold text-slate-900">How was your service experience?</h2>
+      <p class="text-xs text-slate-500 mt-1">Your feedback directly improves government counter performance.</p>
+
+      <!-- Star Rating Picker -->
+      <div class="flex justify-center gap-2 my-6 text-2xl text-slate-300">
+        <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 transition rating-star" onclick="app.setRating(1)"></i>
+        <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 transition rating-star" onclick="app.setRating(2)"></i>
+        <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 transition rating-star" onclick="app.setRating(3)"></i>
+        <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 transition rating-star" onclick="app.setRating(4)"></i>
+        <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 transition rating-star" onclick="app.setRating(5)"></i>
+      </div>
+
+      <textarea id="feedback-comment" rows="3" placeholder="Share your experience (waiting time, staff courtesy, process ease)..." class="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
+
+      <button onclick="app.submitFeedback()" class="w-full btn-primary text-xs">
+        Submit Feedback
+      </button>
+    </div>
+  </div>
+
+  <!-- SERVICE HISTORY MODAL -->
+  <div id="modal-history" class="modal-overlay">
+    <div class="modal-container p-6 sm:p-8">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <h2 class="text-xl font-extrabold text-slate-900">Citizen Service History</h2>
+        <button onclick="app.closeModal('modal-history')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition">
+          &times;
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-3">
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+          <div>
+            <span class="font-bold text-slate-900 block text-sm">Driving License Renewal</span>
+            <span class="text-slate-500">Completed • 12 Oct 2026 • Counter 03</span>
+          </div>
+          <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full">Completed</span>
+        </div>
+
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+          <div>
+            <span class="font-bold text-slate-900 block text-sm">Income Certificate</span>
+            <span class="text-slate-500">Completed • 08 Oct 2026 • Revenue Office</span>
+          </div>
+          <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full">Completed</span>
+        </div>
+
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+          <div>
+            <span class="font-bold text-slate-900 block text-sm">Birth Certificate Application</span>
+            <span class="text-slate-500">Completed • 20 Sep 2026 • Municipal Corp</span>
+          </div>
+          <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full">Completed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION -->
+  <nav class="mobile-bottom-nav">
+    <a href="#" onclick="app.switchRole('landing'); return false;" class="mobile-nav-item active" data-role="landing">
+      <i class="fa-solid fa-house text-base"></i> Home
+    </a>
+    <a href="#" onclick="app.switchRole('citizen'); return false;" class="mobile-nav-item" data-role="citizen">
+      <i class="fa-solid fa-user-circle text-base"></i> My Token
+    </a>
+    <a href="#" onclick="app.openBookingModal(); return false;" class="mobile-nav-item">
+      <i class="fa-solid fa-calendar-plus text-base text-blue-600"></i> Book
+    </a>
+    <a href="#" onclick="app.switchRole('staff'); return false;" class="mobile-nav-item" data-role="staff">
+      <i class="fa-solid fa-id-card text-base"></i> Staff
+    </a>
+    <a href="#" onclick="app.switchRole('admin'); return false;" class="mobile-nav-item" data-role="admin">
+      <i class="fa-solid fa-chart-line text-base"></i> Admin
+    </a>
+  </nav>
+
+  <!-- Application Logic JS Script -->
+  <script src="app.js"></script>
+</body>
+</html>

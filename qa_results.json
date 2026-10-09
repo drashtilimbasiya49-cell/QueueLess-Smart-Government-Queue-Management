@@ -1,0 +1,152 @@
+[
+  {
+    "id": 1,
+    "name": "Landing page loads without errors",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "id": 23,
+    "name": "Check browser console for JavaScript errors",
+    "status": "PASS",
+    "details": "0 severe JS errors"
+  },
+  {
+    "id": 2,
+    "name": "Book a Service button works",
+    "status": "PASS",
+    "details": "Booking modal opened"
+  },
+  {
+    "id": 3,
+    "name": "Government service selection works",
+    "status": "PASS",
+    "details": "4 services loaded"
+  },
+  {
+    "id": 4,
+    "name": "Document checklist works",
+    "status": "PASS",
+    "details": "Readiness score: 100%"
+  },
+  {
+    "id": 5,
+    "name": "Appointment/date selection works",
+    "status": "PASS",
+    "details": "Default date: Today"
+  },
+  {
+    "id": 6,
+    "name": "Digital token is generated correctly",
+    "status": "PASS",
+    "details": "Generated token: A-182"
+  },
+  {
+    "id": 7,
+    "name": "My Token page shows generated token",
+    "status": "PASS",
+    "details": "Active token: A-182"
+  },
+  {
+    "id": 8,
+    "name": "Live Queue Tracking works",
+    "status": "PASS",
+    "details": "Timeline nodes rendered"
+  },
+  {
+    "id": 9,
+    "name": "Start Hackathon Demo works",
+    "status": "PASS",
+    "details": "Status: Simulating Queue Movement..."
+  },
+  {
+    "id": 10,
+    "name": "Queue automatically progresses",
+    "status": "PASS",
+    "details": ""
+  },
+  {
+    "id": 11,
+    "name": "People Ahead and Estimated Wait Time update correctly",
+    "status": "PASS",
+    "details": "Ahead: 6, Wait: 21 min"
+  },
+  {
+    "id": 12,
+    "name": "'Your turn is approaching' notification appears",
+    "status": "PASS",
+    "details": "\u26a1 YOUR TURN IS APPROACHING!"
+  },
+  {
+    "id": 13,
+    "name": "'NOW SERVING' notification appears",
+    "status": "PASS",
+    "details": "\ud83d\udd14 NOW SERVING \u2013 PROCEED TO COUNTER 03"
+  },
+  {
+    "id": 14,
+    "name": "Staff Dashboard works",
+    "status": "PASS",
+    "details": "Staff view active"
+  },
+  {
+    "id": 15,
+    "name": "Call Next / Complete / Skip actions work",
+    "status": "PASS",
+    "details": "Counter actions executed"
+  },
+  {
+    "id": 16,
+    "name": "Admin Dashboard and charts load correctly",
+    "status": "PASS",
+    "details": "SVG telemetry charts rendered"
+  },
+  {
+    "id": 17,
+    "name": "AI Wait-Time Prediction displays correctly",
+    "status": "PASS",
+    "details": "Displayed AI Wait: 21 Minutes"
+  },
+  {
+    "id": 18,
+    "name": "Smart Counter Allocation works",
+    "status": "PASS",
+    "details": "Active counters: 5 / 5"
+  },
+  {
+    "id": 19,
+    "name": "English / Hindi / Gujarati switching works",
+    "status": "PASS",
+    "details": "Hindi language set"
+  },
+  {
+    "id": 20,
+    "name": "High Contrast and Large Text modes work",
+    "status": "PASS",
+    "details": "bg-slate-50 text-slate-900 transition-colors duration-200 high-contrast large-text"
+  },
+  {
+    "id": 21,
+    "name": "Mobile layout works",
+    "status": "PASS",
+    "details": "Mobile bottom nav verified"
+  },
+  {
+    "id": 22,
+    "name": "Refreshing page preserves demo state",
+    "status": "PASS",
+    "details": "Persisted token: A-182"
+  },
+  {
+    "id": 24,
+    "name": "Check for broken links and buttons",
+    "status": "PASS",
+    "details": "73 interactive buttons verified"
+  },
+  {
+    "id": 25,
+    "name": "Check for overlapping or hidden UI elements",
+    "status": "PASS",
+    "details": "Layout bounds aligned"
+  }
+]
